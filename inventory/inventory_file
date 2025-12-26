@@ -1,0 +1,12 @@
+[webservers]
+<IPs and hosts on /etc/hosts file>
+<Naming is for educational examples>
+webserver1
+
+[db]
+db-server1
+db-server2
+
+[servers:children]
+webservers
+db
