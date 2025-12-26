@@ -1,0 +1,66 @@
+- name: Update system and configure webserver
+  hosts: webservers
+  gather_facts: true 
+
+  tasks:
+
+    - name: Update all APT packages to the latest version
+      ansible.builtin.apt:
+        name: "*"
+        state: latest
+        update_cache: yes
+
+    - name: Install NGINX using official role
+      ansible.builtin.include_role:
+        name: nginxinc.nginx
+      vars:
+        nginx_modules:
+          - geoip
+          - image-filter
+          - njs
+          - perl
+          - xslt
+        nginx_service_modify: true
+        nginx_service_timeout: 95
+        nginx_logrotate_conf_enable: true
+        nginx_logrotate_conf:
+          paths: /var/log/nginx/*.log
+          options:
+            - daily
+            - missingok
+            - rotate 14
+            - compress
+            - delaycompress
+            - notifempty
+            - sharedscripts
+
+    - name: Install UFW
+      ansible.builtin.apt:
+        name: ufw
+        state: present
+
+    - name: Ensure UFW is enabled
+      community.general.ufw:
+        state: enabled
+
+    - name: Transfer nginx profile
+      ansible.builtin.template:
+        src: /home/kkatz/Desktop/projects/ansible/playbooks/nginx-http
+        dest: /etc/ufw/applications.d/nginx
+        owner: root
+        mode: '0644'
+
+    - name: Allow NGINX via UFW
+      community.general.ufw:
+        rule: allow
+        name: "Nginx HTTP"
+
+    - name: Just let it happen
+      ansible.builtin.copy:
+        src: /home/kkatz/Documents/index.html
+        dest: /usr/share/nginx/html/index.html
+
+    - name: Reload Nginx service
+      ansible.builtin.service:
+        name: 'nginx'
+        state: reloaded
